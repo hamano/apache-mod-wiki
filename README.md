@@ -29,6 +29,7 @@ https://github.com/hamano/apache-mod-wiki
 ## Configration
 
 httpd.conf
+
     LoadModule wiki_module modules/mod_wiki.so
     <Location />
       SetHandler wiki
@@ -51,4 +52,4 @@ or google search
 `git log`
 
 ## Author
-Tsukasa Hamano <code@cuspy.org>
+Tsukasa Hamano <http://twitter.com/hamano>
