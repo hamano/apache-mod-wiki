@@ -5,7 +5,7 @@ mod_wiki - git based wiki system for Apache HTTPD Server
 
 mod_wiki is fast, lightweight and CLI friendly Git based Wiki System.
 
-![architecture](architecture.png)
+![architecture](raw/master/architecture.png)
 
 # Feature
 
