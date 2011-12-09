@@ -152,7 +152,7 @@ const git_oid *lookup_master_tree(git_repository *repo)
 
     ret = git_commit_lookup(&commit, repo, commit_oid);
     tree_oid = git_commit_tree_oid(commit);
-    git_commit_close(commit);
+    git_commit_free(commit);
     return tree_oid;
 }
 
@@ -171,6 +171,7 @@ static int lookup_object_by_name(request_rec *r,
     ret = git_tree_lookup(&tree, repo, tree_oid);
     extname = apr_pstrcat(r->pool, name, ".md", NULL);
     entry = git_tree_entry_byname(tree, extname);
+    //printf("extname: %s\n", extname);
     if (entry) {
         type = WIKI_MARKDOWN;
     }else{
@@ -185,7 +186,7 @@ static int lookup_object_by_name(request_rec *r,
         }
     }
 
-    git_tree_close(tree);
+    git_tree_free(tree);
 
     if (entry == NULL) {
         return WIKI_NOTFOUND;
@@ -200,7 +201,7 @@ static int lookup_object_oid(request_rec *r,
                              const char *path,
                              const git_oid **oid)
 {
-    const git_oid *object_oid;
+    const git_oid *object_oid = NULL;
     int type;
     char *saveptr = NULL;
     char *part = NULL;
@@ -209,8 +210,6 @@ static int lookup_object_oid(request_rec *r,
 
     tree_oid = master;
 
-    printf("path=%s\n", path);
-
     while((part = apr_strtok(token, "/", &saveptr)) != NULL){
 /*
         if (*part == '\0') {
@@ -218,7 +217,7 @@ static int lookup_object_oid(request_rec *r,
             continue;
         }
 */
-        printf("part=%s\n", part);
+        //printf("part=%s\n", part);
         type = lookup_object_by_name(r, repo, tree_oid, part, &object_oid);
         if(type == WIKI_NOTFOUND) {
             return type;
@@ -337,13 +336,13 @@ static int wiki_handler(request_rec *r)
     size_t size;
 
     git_odb *odb;
-    odb = git_repository_database(repo);
+    ret = git_repository_odb(&odb, repo);
     git_odb_object *odb_object;
     ret = git_odb_read(&odb_object, odb, oid);
     data = git_odb_object_data(odb_object);
     size = git_odb_object_size(odb_object);
 
-    git_odb_object_close(odb_object);	// is this safe?
+    git_odb_object_free(odb_object);	// is this safe?
 
     if (type == WIKI_FOUND) {
         ap_rwrite(data, size, r);
