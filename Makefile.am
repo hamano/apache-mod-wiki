@@ -4,10 +4,10 @@ lib_LTLIBRARIES = libmodwiki.la
 ## Define the source file for the module
 libmodwiki_la_SOURCES = mod_wiki.c
 libmodwiki_la_CFLAGS = -Wall -DAPACHE_DIR=\"@apache_dir@\"
-libmodwiki_la_LDFLAGS = -L@discount_dir@/ -lmarkdown -L@libgit2_dir@/lib -lgit2 -lz -lcrypto
+libmodwiki_la_LDFLAGS = -L@discount_dir@/lib -lmarkdown -L@libgit2_dir@/lib -lgit2 -lz -lcrypto
 
 ## Define that an include directory is required.
-INCLUDES = -I@apache_dir@/include -I@discount_dir@/ -I@libgit2_dir@/include -D_LARGEFILE64_SOURCE
+INCLUDES = -I@apache_dir@/include -I@discount_dir@/include -I@libgit2_dir@/include -D_LARGEFILE64_SOURCE
 #DEFS =
 
 install: .libs/libmodwiki.so

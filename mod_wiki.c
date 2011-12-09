@@ -52,14 +52,12 @@
 #include "apr_strings.h"
 
 #include "git2.h"
-#include "markdown.h"
+#include "mkdio.h"
 #include "mod_wiki.h"
 
 module AP_MODULE_DECLARE_DATA wiki_module;
 
-extern char *mkd_doc_title(Document *);
-
-static void markdown_output(Document * doc, request_rec * r)
+static void markdown_output(MMIOT *doc, request_rec *r)
 {
     char *title;
     int ret;
@@ -269,7 +267,7 @@ static int wiki_handler(request_rec *r)
     int ret;
     int type;
 
-    Document *doc;
+    MMIOT *doc;
 
     if (strcmp(r->handler, "wiki")) {
         return DECLINED;
