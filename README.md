@@ -27,8 +27,9 @@ https://github.com/hamano/apache-mod-wiki
 
     % ./autogen.sh
     % ./configure --with-apache=<APACHE_DIR> \
-        --with-discount=<DISCOUNT_BUILD_DIR> \
         --with-libgit2=<LIBGIT2_DIR>
+        --with-discount=<DISCOUNT_BUILD_DIR> \
+        --with-clearsilver=<CLEARSILVER_DIR>
     % make
     # make install
 
