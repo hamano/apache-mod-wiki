@@ -1,5 +1,5 @@
 # Required initializer
-AC_INIT(mod_wiki, 0.1)
+AC_INIT(mod_wiki, 0.2)
 
 # Automake initialization
 AM_INIT_AUTOMAKE(dist-bzip2)
@@ -69,6 +69,20 @@ else
     fi
 fi
 AC_SUBST(discount_dir)
+
+AC_ARG_WITH(clearsilver, [  --with-clearsilver=DIR    clearsilver directory ],,[with_clearsilver="no"])
+AC_MSG_CHECKING(for clearsilver directory)
+if test "$with_clearsilver" = "no"; then
+    AC_MSG_ERROR( You need to specify the clearsilver directory using --with-clearsilver)
+else
+    if test -e $with_clearsilver/include/ClearSilver/ClearSilver.h; then
+        clearsilver_dir=$with_clearsilver
+        AC_MSG_RESULT(CLEARSILVER found!)
+    else
+        AC_MSG_ERROR( $with_clearsilver not found.  Check the value you specified with --with-clearsilver)
+    fi
+fi
+AC_SUBST(clearsilver_dir)
 
 # Write config.status and the Makefile
 AC_OUTPUT(Makefile)

@@ -53,11 +53,40 @@
 
 #include "git2.h"
 #include "mkdio.h"
+#include "ClearSilver.h"
+
 #include "mod_wiki.h"
 
 module AP_MODULE_DECLARE_DATA wiki_module;
 
-static void markdown_output(MMIOT *doc, request_rec *r)
+static char* DEFAULT_TEMPLATE = "\
+<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<!DOCTYPE html PUBLIC \n\
+          \"-//W3C//DTD XHTML 1.0 Strict//EN\"\n\
+          \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n\
+<html xmlns=\"http://www.w3.org/1999/xhtml\">\n\
+ <head>\n\
+  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n\
+  <meta http-equiv=\"Content-Style-Type\" content=\"text/css\" />\n\
+  <?cs each:item = css ?>\
+  <link rel=\"stylesheet\" href=\"<?cs var:item ?>\" type=\"text/css\" />\n\
+  <?cs /each ?>\
+  <title><?cs var:title ?> - <?cs var:wikiname ?></title>\n\
+ </head>\n\
+ <body>\n\
+  <h1 class=\"title\"><?cs var:title ?></h1>\n\
+  <div class=\"subtitle\"> From <?cs var:wikiname ?></div>\n\
+  <?cs var:document ?>\n\
+ <body>\n\
+";
+
+static NEOERR *cs_output(void *ctx, char *s)
+{
+    ap_rputs(s, (request_rec *)ctx);
+    return STATUS_OK;
+}
+
+static void wiki_output(MMIOT *doc, request_rec *r)
 {
     char *title;
     int ret;
@@ -65,59 +94,40 @@ static void markdown_output(MMIOT *doc, request_rec *r)
     char *p;
     wiki_conf *conf;
     list_t *css;
+    HDF *hdf;
+    CSPARSE *cs;
+    int i;
 
     conf =
         (wiki_conf *) ap_get_module_config(r->per_dir_config,
                                            &wiki_module);
-
     ret = mkd_compile(doc, MKD_TOC | MKD_AUTOLINK);
-    ap_rputs("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n", r);
-    ap_rputs("<!DOCTYPE html PUBLIC \n"
-             "          \"-//W3C//DTD XHTML 1.0 Strict//EN\"\n"
-             "          \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n",
-             r);
-    ap_rputs("<html xmlns=\"http://www.w3.org/1999/xhtml\">\n", r);
-    ap_rputs("<head>\n", r);
 
-    if (conf->css) {
-        ap_rputs("<meta http-equiv=\"Content-Type\""
-                 " content=\"text/html; charset=UTF-8\" />\n", r);
-        ap_rputs("<meta http-equiv=\"Content-Style-Type\""
-                 " content=\"text/css\" />\n", r);
-        css = conf->css;
-        do {
-            ap_rprintf(r,
-                       "<link rel=\"stylesheet\" href=\"%s\""
-                       " type=\"text/css\" />\n", (char *)css->data);
-            css = (list_t *) css->next;
-        }
-        while (css);
+    hdf_init(&hdf);
+
+    if(conf->name){
+        hdf_set_value(hdf, "wikiname", conf->name);
     }
+
     title = mkd_doc_title(doc);
-    if (title) {
-        if (conf->name) {
-            ap_rprintf(r, "<title>%s - %s</title>\n", title, conf->name);
-        } else {
-            ap_rprintf(r, "<title>%s</title>\n", title);
-        }
+    if(title == NULL){
+        title = "notitle";
     }
-    ap_rputs("</head>\n", r);
-    ap_rputs("<body>\n", r);
-    if (title) {
-        ap_rprintf(r, "<h1 class=\"title\">%s</h1>\n", title);
+    hdf_set_value(hdf, "title", title);
+
+    for(i=0, css = conf->css; css; i++, css = (list_t *) css->next){
+        hdf_set_valuef(hdf, "css.%d=%s", i, (char *)css->data);
     }
-    if (conf->name) {
-        ap_rprintf(r,
-                   "<div class=\"subtitle\">" "From %s" "</div>\n",
-                   conf->name);
-    }
+
     if ((size = mkd_document(doc, &p)) != EOF) {
-        ap_rwrite(p, size, r);
+        hdf_set_value(hdf, "document", p);
     }
-    ap_rputc('\n', r);
-    ap_rputs("</body>\n", r);
-    ap_rputs("</html>\n", r);
-    mkd_cleanup(doc);
+
+    cs_init(&cs, hdf);
+    cs_parse_string(cs, strdup(DEFAULT_TEMPLATE), strlen(DEFAULT_TEMPLATE));
+    cs_render(cs, r, cs_output);
+    hdf_destroy(&hdf);
+    cs_destroy(&cs);
 }
 
 static void log_oid(request_rec *r,
@@ -355,7 +365,8 @@ static int wiki_handler(request_rec *r)
             git_repository_free(repo);
             return HTTP_INTERNAL_SERVER_ERROR;
         }
-        markdown_output(doc, r);
+        wiki_output(doc, r);
+        mkd_cleanup(doc);
     } else {
         ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
                       "Unknown Error.\n");
