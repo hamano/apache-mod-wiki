@@ -1,5 +1,5 @@
 # Required initializer
-AC_INIT(mod_wiki, 0.2)
+AC_INIT(mod_wiki, 0.3)
 
 # Automake initialization
 AM_INIT_AUTOMAKE(dist-bzip2)
